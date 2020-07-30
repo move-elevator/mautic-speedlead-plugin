@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 
 namespace MauticPlugin\SpeedleadBundle\Service;
 
@@ -28,7 +29,7 @@ class ReportApiService extends SpeedleadApiService
             $this->handleAuthRefresh();
 
             // call reports-api again with refreshed auth
-            return self::callApiGetReports();
+            return self::callApiGetReports($createdBeforeString, $updatedAfterString);
         }
 
         return $result;

@@ -1,28 +1,40 @@
 <?php
-
-/*
- * @copyright   2014 Mautic Contributors. All rights reserved
- * @author      Mautic
- *
- * @link        http://mautic.org
- *
- * @license     GNU/GPLv3 http://www.gnu.org/licenses/gpl-3.0.html
- */
+declare(strict_types = 1);
 
 namespace MauticPlugin\SpeedleadBundle\Integration;
 
+use Doctrine\ORM\EntityManager;
+use Mautic\CoreBundle\Helper\CacheStorageHelper;
+use Mautic\CoreBundle\Helper\EncryptionHelper;
+use Mautic\CoreBundle\Helper\PathsHelper;
+use Mautic\CoreBundle\Model\NotificationModel;
 use Mautic\LeadBundle\Entity\LeadList;
+use Mautic\LeadBundle\Model\CompanyModel;
+use Mautic\LeadBundle\Model\DoNotContact as DoNotContactModel;
+use Mautic\LeadBundle\Model\FieldModel;
+use Mautic\LeadBundle\Model\LeadModel;
 use Mautic\PluginBundle\Integration\AbstractIntegration;
+use Mautic\PluginBundle\Model\IntegrationEntityModel;
 use Mautic\StageBundle\Entity\Stage;
 use MauticPlugin\SpeedleadBundle\Service\AuthCheckService;
+use Monolog\Logger;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
-use Symfony\Component\Form\FormBuilder;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\Routing\Router;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class SpeedleadIntegration extends AbstractIntegration
 {
+    /**
+     * @var AuthCheckService
+     */
+    private $authCheckService;
+
     /**
      * {@inheritdoc}
      */
@@ -68,26 +80,67 @@ class SpeedleadIntegration extends AbstractIntegration
         ];
     }
 
+    public function __construct(
+        EventDispatcherInterface $eventDispatcher,
+        CacheStorageHelper $cacheStorageHelper,
+        EntityManager $entityManager,
+        Session $session,
+        RequestStack $requestStack,
+        Router $router,
+        TranslatorInterface $translator,
+        Logger $logger,
+        EncryptionHelper $encryptionHelper,
+        LeadModel $leadModel,
+        CompanyModel $companyModel,
+        PathsHelper $pathsHelper,
+        NotificationModel $notificationModel,
+        FieldModel $fieldModel,
+        IntegrationEntityModel $integrationEntityModel,
+        DoNotContactModel $doNotContact,
+        AuthCheckService $authCheckService
+    ) {
+        $this->authCheckService = $authCheckService;
+
+        parent::__construct(
+            $eventDispatcher,
+            $cacheStorageHelper,
+            $entityManager,
+            $session,
+            $requestStack,
+            $router,
+            $translator,
+            $logger,
+            $encryptionHelper,
+            $leadModel,
+            $companyModel,
+            $pathsHelper,
+            $notificationModel,
+            $fieldModel,
+            $integrationEntityModel,
+            $doNotContact
+        );
+    }
+
     /**
      * {@inheritdoc}
      */
     public function appendToForm(&$builder, $data, $formArea): void
     {
         $stages = $this->em->getRepository(Stage::class)->getStages();
-        $stageChoices = [0 => 'mautic.integration.speedlead.initial.stage.none'];
+        $stageChoices = ['mautic.integration.speedlead.initial.stage.none' => 0];
 
         foreach ($stages as $stage) {
-            $stageChoices[$stage['id']] = $stage['name'];
+            $stageChoices[$stage['name']] = $stage['id'];
         }
 
         $segments = $this->em->getRepository(LeadList::class)->getGlobalLists();
-        $segmentChoices = [0 => 'mautic.integration.speedlead.segment.none'];
+        $segmentChoices = ['mautic.integration.speedlead.segment.none' => 0];
 
         foreach ($segments as $segment) {
-            $segmentChoices[$segment['id']] = $segment['name'];
+            $segmentChoices[$segment['name']] = $segment['id'];
         }
 
-        if ($formArea == 'features') {
+        if ($formArea === 'features') {
             $builder->add(
                 'initialStage',
                 ChoiceType::class,
@@ -115,8 +168,8 @@ class SpeedleadIntegration extends AbstractIntegration
                 ChoiceType::class,
                 [
                     'choices'    => [
-                        0 => 'mautic.integration.speedlead.automatic.import.no',
-                        1 => 'mautic.integration.speedlead.automatic.import.yes',
+                        'mautic.integration.speedlead.automatic.import.no' => 0,
+                        'mautic.integration.speedlead.automatic.import.yes' => 1,
                     ],
                     'label'      => 'mautic.integration.speedlead.automatic.import',
                     'required'   => true,
@@ -142,10 +195,7 @@ class SpeedleadIntegration extends AbstractIntegration
     public function onPreSubmit(FormEvent $event): void
     {
         try {
-            /** @var AuthCheckService $loginService */
-            $loginService = $this->factory->get('mautic.speedlead.service.authcheck');
-
-            $authResponse = $loginService->authenticate($event->getData());
+            $authResponse = $this->authCheckService->authenticate($event->getData());
 
             $updatedApiKeys = $event->getData();
             $updatedApiKeys['token'] = $authResponse['token'];

@@ -1,13 +1,14 @@
 <?php
+declare(strict_types = 1);
 
 namespace MauticPlugin\SpeedleadBundle\Command;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Mautic\PluginBundle\Entity\Integration;
 use MauticPlugin\SpeedleadBundle\Service\ReportApiService;
 use MauticPlugin\SpeedleadBundle\Service\ReportContactMapperService;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use \Mautic\PluginBundle\Entity\IntegrationRepository;
 
@@ -43,7 +44,21 @@ class ImportContactsCommand extends ContainerAwareCommand
     protected function configure(): void
     {
         $this->setName('speedlead:import-contacts')
-            ->setDescription('Import contacts from configured speedlead-instance.');
+            ->setDescription('Import contacts from configured speedlead-instance.')
+            ->addOption(
+                'createdBefore',
+                'c',
+                InputOption::VALUE_OPTIONAL,
+                'only get reports that were created before given string.',
+                'now'
+            )
+            ->addOption(
+                'updatedAfter',
+                'u',
+                InputOption::VALUE_OPTIONAL,
+                'only get reports that were updated after given string.',
+                'now'
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -71,7 +86,10 @@ class ImportContactsCommand extends ContainerAwareCommand
 
         try {
             //get reports
-            $reports = $this->reportApiService->callApiGetReports();
+            $reports = $this->reportApiService->callApiGetReports(
+                $input->getOption('createdBefore'),
+                $input->getOption('updatedAfter')
+            );
 
             // map reports
             foreach($reports as $report) {
