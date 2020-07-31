@@ -31,7 +31,7 @@ or you can take the symfony-command ```speedlead:import-contacts``` by itself an
 * this runs the same logic that the command would run and after success, prints out how many reports from speedlead were handled
 * this way you can always be sure, your reports (speedlead-wise) are in a good shape before they are imported to Mautic
 
-##Features
+## Features
 * the command ```speedlead:import-contacts``` offers two optional options to customize how the filters for the speedlead-API to fetch the contacts
 will behave:
 ```
