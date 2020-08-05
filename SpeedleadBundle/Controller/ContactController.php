@@ -5,10 +5,11 @@ namespace MauticPlugin\SpeedleadBundle\Controller;
 
 use Mautic\CoreBundle\Controller\AbstractFormController;
 use Mautic\PluginBundle\Entity\Integration;
+use Symfony\Component\HttpFoundation\Response;
 
 class ContactController extends AbstractFormController
 {
-    public function importAction()
+    public function importAction(): Response
     {
         $integrationRepository = $this
             ->getDoctrine()

@@ -177,7 +177,7 @@ class ReportContactMapperService
 
     }
 
-    private function createLead(array $report, int $initialStage, LeadModel $leadModel)
+    private function createLead(array $report, int $initialStage, LeadModel $leadModel): Lead
     {
         $lead = new Lead();
         $lead->setNewlyCreated(true);
@@ -362,7 +362,7 @@ class ReportContactMapperService
         return $fieldsToUpdate;
     }
 
-    private function getFair()
+    private function getFair(): ?array
     {
         $fair = $this->fairApiService->getFair();
 
