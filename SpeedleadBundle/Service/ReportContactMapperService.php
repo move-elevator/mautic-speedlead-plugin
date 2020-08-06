@@ -21,6 +21,7 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\NoteModel;
 use \Mautic\StageBundle\Entity\StageRepository;
 use MauticPlugin\SpeedleadBundle\Statics\ReportConsent;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ReportContactMapperService
 {
@@ -74,6 +75,11 @@ class ReportContactMapperService
      */
     private $eventLogRepository;
 
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
     public function __construct(
         ModelFactory $modelFactory,
         IpLookupHelper $ipLookupHelper,
@@ -84,7 +90,8 @@ class ReportContactMapperService
         CompanyRepository $companyRepository,
         FairApiService $fairApiService,
         UrlGeneratorService $urlGeneratorService,
-        LeadEventLogRepository $eventLogRepository
+        LeadEventLogRepository $eventLogRepository,
+        TranslatorInterface $translator
     ) {
         $this->modelFactory = $modelFactory;
         $this->ipLookupHelper = $ipLookupHelper;
@@ -96,6 +103,7 @@ class ReportContactMapperService
         $this->fairApiService = $fairApiService;
         $this->urlGeneratorService = $urlGeneratorService;
         $this->eventLogRepository = $eventLogRepository;
+        $this->translator = $translator;
     }
 
     public function createContact(array $report, array $featureSettings): void
@@ -266,14 +274,15 @@ class ReportContactMapperService
             'lead',
             'lead',
             null,
-            sprintf(
-                'speedlead-Import (Messe: %s, URL: %s)',
-                $fair['eventName'],
-                $this->urlGeneratorService->generateUrlReportFrontend(
-                    $this->fairApiService->getInstance(),
-                    $report['id'],
-                    $fair['id']
-                )
+            $this->translator->trans(
+                'mautic.speedlead.event_log_msg', [
+                    '%fair%' => $fair['eventName'],
+                    '%url%' => $this->urlGeneratorService->generateUrlReportFrontend(
+                        $this->fairApiService->getInstance(),
+                        $report['id'],
+                        $fair['id']
+                    )
+                ]
             )
         ));
     }
@@ -285,16 +294,17 @@ class ReportContactMapperService
         $note = new LeadNote();
 
         $note->setType('general');
-        $note->setText(sprintf(
-            'Der Kontakt wurde auf Messe %s am %s angetroffen. Link zu speedlead: %s',
-            $fair['eventName'],
-            (new \DateTime($report['created']))->format('d.m.Y H:i:s'),
-            $this->urlGeneratorService->generateUrlReportFrontend(
-                $this->fairApiService->getInstance(),
-                $report['id'],
-                $fair['id']
-            )
-        ));
+        $note->setText(
+            $this->translator->trans('mautic.speedlead.note.contact_created', [
+                '%fair%' => $fair['eventName'],
+                '%date%' => (new \DateTime($report['created']))->format('d.m.Y H:i:s'),
+                '%url%' => $this->urlGeneratorService->generateUrlReportFrontend(
+                    $this->fairApiService->getInstance(),
+                    $report['id'],
+                    $fair['id']
+                 )
+            ])
+        );
         $note->setLead($lead);
         $note->setDateTime(new \DateTime());
 

@@ -11,6 +11,8 @@ class ContactController extends AbstractFormController
 {
     public function importAction(): Response
     {
+        $translator = $this->get('translator');
+
         $integrationRepository = $this
             ->getDoctrine()
             ->getRepository(Integration::class);
@@ -22,7 +24,7 @@ class ContactController extends AbstractFormController
             return $this->delegateView([
                 'contentTemplate' => 'SpeedleadBundle:Contact:import.html.php',
                 'viewParameters' => [
-                    'message' => 'no plugin-configurtaion found for speedlead'
+                    'message' => $translator->trans('mautic.speedlead.no_plugin_conf_found')
                 ]
             ]);
         }
@@ -31,7 +33,7 @@ class ContactController extends AbstractFormController
             return $this->delegateView([
                 'contentTemplate' => 'SpeedleadBundle:Contact:import.html.php',
                 'viewParameters' => [
-                    'message' => 'plugin-configuration found but feature-settings are not configured'
+                    'message' => $translator->trans('mautic.speedlead.plugin_conf_found_but_no_feature_settings')
                 ]
             ]);
         }
@@ -50,7 +52,7 @@ class ContactController extends AbstractFormController
             return $this->delegateView([
                 'contentTemplate' => 'SpeedleadBundle:Contact:import.html.php',
                 'viewParameters' => [
-                    'message' => sprintf('command failed with message: %s', $exception->getMessage())
+                    'message' => $translator->trans('mautic.speedlead.import_failed_with_msg', ['%message%' => $exception->getMessage()])
                 ]
             ]);
         }

@@ -7,6 +7,7 @@ use GuzzleHttp\Client;
 use Mautic\CoreBundle\Helper\EncryptionHelper;
 use Mautic\PluginBundle\Entity\Integration;
 use Mautic\PluginBundle\Entity\IntegrationRepository;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class AuthCheckService
 {
@@ -20,12 +21,19 @@ class AuthCheckService
      */
     private $integrationsRepository;
 
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
     public function __construct(
         IntegrationRepository $integrationsRepository,
-        EncryptionHelper $encryptionHelper
+        EncryptionHelper $encryptionHelper,
+        TranslatorInterface $translator
     ) {
         $this->encryptionHelper = $encryptionHelper;
         $this->integrationsRepository = $integrationsRepository;
+        $this->translator = $translator;
     }
 
     public function authenticate(array $credentials): array
@@ -46,7 +54,7 @@ class AuthCheckService
         $speedleadIntegration = $this->integrationsRepository->findOneBy(['name' => 'Speedlead']);
 
         if (false === $speedleadIntegration instanceof Integration) {
-            throw new \Exception('no speedlead-integration found');
+            throw new \Exception($this->translator->trans('mautic.speedlead.no_plugin_conf_found'));
         }
 
         return $this->encryptionHelper->decrypt($speedleadIntegration->getApiKeys()['password']);
@@ -72,7 +80,7 @@ class AuthCheckService
         $responseTokens = json_decode($response->getBody()->getContents(), true);
 
         if (false === array_key_exists('token', $responseTokens)) {
-           throw new \Exception(sprintf('login failed with message: %s', $responseTokens['message']));
+           throw new \Exception($this->translator->trans('mautic.speedlead.sl_login_failed_with_msg', ['%message%' => $responseTokens['message']]));
         }
 
         return $responseTokens;

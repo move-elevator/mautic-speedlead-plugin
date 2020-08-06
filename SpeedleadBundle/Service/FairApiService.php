@@ -15,7 +15,7 @@ class FairApiService extends SpeedleadApiService
     public function callApiShowFair(): void
     {
         if (null === $this->integration) {
-            throw new \Exception('missing speedlead integration.');
+            throw new \Exception($this->translator->trans('mautic.speedlead.no_plugin_conf_found'));
         }
 
         $client = new Client();

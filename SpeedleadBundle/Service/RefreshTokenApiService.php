@@ -3,13 +3,21 @@ declare(strict_types = 1);
 
 namespace MauticPlugin\SpeedleadBundle\Service;
 
-use Doctrine\ORM\EntityManagerInterface;
 use GuzzleHttp\Client;
-use Mautic\CoreBundle\Helper\EncryptionHelper;
-use Mautic\PluginBundle\Entity\Integration;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class RefreshTokenApiService
 {
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
+
     public function refresh(string $baseUrl, string $refreshToken): array
     {
         $client = new Client();
@@ -26,7 +34,7 @@ class RefreshTokenApiService
         $responseTokens = json_decode($response->getBody()->getContents(), true);
 
         if (false === array_key_exists('token', $responseTokens)) {
-            throw new \Exception(sprintf('token refresh failed with message: %s', $responseTokens['message']));
+            throw new \Exception($this->translator->trans('mautic.speedlead.token_refresh_failed_with_msg', ['%message%' => $responseTokens['message']]));
         }
 
         return $responseTokens;
