@@ -5,11 +5,13 @@ namespace MauticPlugin\SpeedleadBundle\Controller;
 
 use Mautic\CoreBundle\Controller\AbstractFormController;
 use Mautic\PluginBundle\Entity\Integration;
+use MauticPlugin\SpeedleadBundle\Form\Type\FilterImportType;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ContactController extends AbstractFormController
 {
-    public function importAction(): Response
+    public function importAction(Request $request): Response
     {
         $translator = $this->get('translator');
 
@@ -38,21 +40,38 @@ class ContactController extends AbstractFormController
             ]);
         }
 
-        try {
-            //get reports
-            $reports = $this->get('mautic.speedlead.service.report_api')->callApiGetReports();
+        $form = $this
+            ->createForm(FilterImportType::class)
+            ->handleRequest($request);
 
-            // map reports
-            foreach($reports as $report) {
-                $this
-                    ->get('mautic.speedlead.service.report_contact_mapper')
-                    ->createContact($report, $integration->getFeatureSettings());
+        if (true === $form->isSubmitted() && true === $form->isValid()) {
+            try {
+                //get reports
+                $reports = $this->get('mautic.speedlead.service.report_api')->callApiGetReports(
+                    $form->get('createdBefore')->getViewData(),
+                    $form->get('updatedAfter')->getViewData()
+                );
+
+                // map reports
+                foreach($reports as $report) {
+                    $this
+                        ->get('mautic.speedlead.service.report_contact_mapper')
+                        ->createContact($report, $integration->getFeatureSettings());
+                }
+            } catch (\Throwable $exception) {
+                return $this->delegateView([
+                    'contentTemplate' => 'SpeedleadBundle:Contact:import.html.php',
+                    'viewParameters' => [
+                        'message' => $translator->trans('mautic.speedlead.import_failed_with_msg', ['%message%' => $exception->getMessage()])
+                    ]
+                ]);
             }
-        } catch (\Throwable $exception) {
+
             return $this->delegateView([
                 'contentTemplate' => 'SpeedleadBundle:Contact:import.html.php',
                 'viewParameters' => [
-                    'message' => $translator->trans('mautic.speedlead.import_failed_with_msg', ['%message%' => $exception->getMessage()])
+                    'reports' => $reports,
+                    'form' => $form->createView()
                 ]
             ]);
         }
@@ -60,7 +79,7 @@ class ContactController extends AbstractFormController
         return $this->delegateView([
             'contentTemplate' => 'SpeedleadBundle:Contact:import.html.php',
             'viewParameters' => [
-                'reports' => $reports,
+                'form' => $form->createView(),
             ]
         ]);
     }

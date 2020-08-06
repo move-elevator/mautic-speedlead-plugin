@@ -40,4 +40,7 @@ will behave:
 ```
 * the value needs to be a string that also can be set in the constructor-method of a DateTime object
 * refer to https://www.php.net/manual/de/class.datetime.php for instructions on how to set up those strings
-* currently, this only works if you run the plugin automatically
+
+
+* if you trigger the import manually via the Mautic-UI, you can also customize these filters in the form which is displayed upon navigating to the menu
+* the value needs to be given in the same way that they are given to the symfony-command
