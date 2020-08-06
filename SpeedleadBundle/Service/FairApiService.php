@@ -1,6 +1,9 @@
 <?php
+declare(strict_types = 1);
 
 namespace MauticPlugin\SpeedleadBundle\Service;
+
+use GuzzleHttp\Client;
 
 class FairApiService extends SpeedleadApiService
 {
@@ -12,17 +15,22 @@ class FairApiService extends SpeedleadApiService
     public function callApiShowFair()
     {
         if (null === $this->integration) {
-            throw new \Exception('missing speedlead integration.');
+            throw new \Exception($this->translator->trans('mautic.speedlead.no_plugin_conf_found'));
         }
 
-        $requestString = sprintf(
-            'curl --location --request GET "%s/backend/api/v1/fairs/%s" --header "Authorization: Bearer %s" --header "Content-Type: application/json"',
-            $this->getInstance(),
-            $this->getFairId(),
-            $this->getToken()
+        $client = new Client();
+
+        $response = $client->request(
+            'GET',
+            sprintf('%s/backend/api/v1/fairs/%s', $this->getInstance(), $this->getFairId()), [
+                'headers' => [
+                    'Authorization' => sprintf('Bearer %s', $this->getToken()),
+                    'Content-Type' => 'application/json'
+                ]
+            ]
         );
 
-        $result = json_decode(exec($requestString), true);
+        $result = json_decode($response->getBody()->getContents(), true);
 
         if (true === array_key_exists('code', $result) && $result['code'] === 401) {
             $this->handleAuthRefresh();

@@ -1,38 +1,48 @@
 <?php
+declare(strict_types = 1);
 
 namespace MauticPlugin\SpeedleadBundle\Service;
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use Symfony\Component\HttpFoundation\Response;
 
 class ReportApiService extends SpeedleadApiService
 {
     public function callApiGetReports(string $createdBeforeString = '-2 hours', string $updatedAfterString = '-4 hours'): array
     {
         if (null === $this->integration) {
-            throw new \Exception('missing speedlead integration.');
+            throw new \Exception($this->translator->trans('mautic.speedlead.no_plugin_conf_found'));
         }
 
         $createdBefore = new \DateTime($createdBeforeString);
         $updatedAfter = new \DateTime($updatedAfterString);
 
-        $requestString = sprintf(
-            'curl --location --request GET "%s/backend/api/v1/fairs/%s/survey/reports?createdBefore=%s&updatedAfter=%s" --header "Authorization: Bearer %s" --header "Content-Type: application/json"',
-            $this->getInstance(),
-            $this->getFairId(),
-            $createdBefore->getTimestamp(),
-            $updatedAfter->getTimestamp(),
-            $this->getToken()
-        );
+        $client = new Client();
 
-        $result = json_decode(exec($requestString), true);
+        try {
+            $response = $client->request(
+                'GET',
+                sprintf('%s/backend/api/v1/fairs/%s/survey/reports', $this->getInstance(), $this->getFairId()), [
+                    'query' => [
+                        'createdBefore' => $createdBefore->getTimestamp(),
+                        'updatedAfter' => $updatedAfter->getTimestamp()
+                    ],
+                    'headers' => [
+                        'Authorization' => sprintf('Bearer %s', $this->getToken()),
+                        'Content-Type' => 'application/json'
+                    ]
+                ]
+            );
+        } catch (ClientException $exception) {
+            if (Response::HTTP_UNAUTHORIZED === $exception->getCode()) {
+                $this->handleAuthRefresh();
 
-        if (true === array_key_exists('code', $result) && $result['code'] === 401) {
-            $this->handleAuthRefresh();
-
-            // call reports-api again with refreshed auth
-            return self::callApiGetReports();
+                // call reports-api again with refreshed auth
+                return self::callApiGetReports($createdBeforeString, $updatedAfterString);
+            }
         }
 
-        return $result;
+        return json_decode($response->getBody()->getContents(), true);
     }
-
-
 }

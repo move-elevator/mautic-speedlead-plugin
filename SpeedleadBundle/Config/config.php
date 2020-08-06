@@ -59,11 +59,15 @@ return [
                 'class' => \MauticPlugin\SpeedleadBundle\Service\AuthCheckService::class,
                 'arguments' => [
                     '@=service("doctrine").getRepository("MauticPluginBundle:Integration")',
-                    'mautic.helper.encryption'
+                    'mautic.helper.encryption',
+                    'translator'
                 ],
             ],
             'mautic.speedlead.service.refresh_token_api' => [
-                'class' => \MauticPlugin\SpeedleadBundle\Service\RefreshTokenApiService::class
+                'class' => \MauticPlugin\SpeedleadBundle\Service\RefreshTokenApiService::class,
+                'arguments' => [
+                    'translator'
+                ]
             ],
             'mautic.speedlead.service.report_api' => [
                 'class' => \MauticPlugin\SpeedleadBundle\Service\ReportApiService::class,
@@ -71,6 +75,7 @@ return [
                     '@=service("doctrine").getRepository("MauticPluginBundle:Integration")',
                     'mautic.helper.encryption',
                     'mautic.speedlead.service.refresh_token_api',
+                    'translator'
                 ]
             ],
             'mautic.speedlead.service.fair_api' => [
@@ -79,6 +84,7 @@ return [
                     '@=service("doctrine").getRepository("MauticPluginBundle:Integration")',
                     'mautic.helper.encryption',
                     'mautic.speedlead.service.refresh_token_api',
+                    'translator'
                 ]
             ],
             'mautic.speedlead.service.report_contact_mapper' => [
@@ -94,6 +100,7 @@ return [
                     'mautic.speedlead.service.fair_api',
                     'mautic.speedlead.service.url_generator',
                     '@=service("doctrine").getRepository("MauticLeadBundle:LeadEventLog")',
+                    'translator'
                 ]
             ],
             'mautic.speedlead.service.url_generator' => [

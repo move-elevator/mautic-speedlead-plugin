@@ -1,10 +1,13 @@
 <?php
+declare(strict_types = 1);
 
 namespace MauticPlugin\SpeedleadBundle\Service;
 
+use GuzzleHttp\Client;
 use Mautic\CoreBundle\Helper\EncryptionHelper;
 use Mautic\PluginBundle\Entity\Integration;
 use Mautic\PluginBundle\Entity\IntegrationRepository;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class AuthCheckService
 {
@@ -18,12 +21,19 @@ class AuthCheckService
      */
     private $integrationsRepository;
 
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
     public function __construct(
         IntegrationRepository $integrationsRepository,
-        EncryptionHelper $encryptionHelper
+        EncryptionHelper $encryptionHelper,
+        TranslatorInterface $translator
     ) {
         $this->encryptionHelper = $encryptionHelper;
         $this->integrationsRepository = $integrationsRepository;
+        $this->translator = $translator;
     }
 
     public function authenticate(array $credentials): array
@@ -44,7 +54,7 @@ class AuthCheckService
         $speedleadIntegration = $this->integrationsRepository->findOneBy(['name' => 'Speedlead']);
 
         if (false === $speedleadIntegration instanceof Integration) {
-            throw new \Exception('no speedlead-integration found');
+            throw new \Exception($this->translator->trans('mautic.speedlead.no_plugin_conf_found'));
         }
 
         return $this->encryptionHelper->decrypt($speedleadIntegration->getApiKeys()['password']);
@@ -55,19 +65,24 @@ class AuthCheckService
      */
     private function doLogin(array $credentials): array
     {
-        $requestString = sprintf(
-            'curl --location --request POST "%s/backend/api/v1/login" --header "Content-Type: multipart/form-data;" --form "username=%s" --form "password=%s"',
-            $credentials['instance'],
-            $credentials['username'],
-            $credentials['password']
+        $client = new Client();
+
+        $response = $client->request(
+            'POST',
+            sprintf('%s/backend/api/v1/login', $credentials['instance']), [
+                'multipart' => [
+                    ['name' => 'username', 'contents' => $credentials['username']],
+                    ['name' => 'password', 'contents' => $credentials['password']],
+                ]
+            ]
         );
 
-        $response = json_decode(exec($requestString), true);
+        $responseTokens = json_decode($response->getBody()->getContents(), true);
 
-        if (false === array_key_exists('token', $response)) {
-           throw new \Exception(sprintf('login failed with message: %s', $response['message']));
+        if (false === array_key_exists('token', $responseTokens)) {
+            throw new \Exception($this->translator->trans('mautic.speedlead.sl_login_failed_with_msg', ['%message%' => $responseTokens['message']]));
         }
 
-        return $response;
+        return $responseTokens;
     }
 }

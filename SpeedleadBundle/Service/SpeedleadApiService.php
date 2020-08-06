@@ -6,6 +6,7 @@ namespace MauticPlugin\SpeedleadBundle\Service;
 use Mautic\CoreBundle\Helper\EncryptionHelper;
 use Mautic\PluginBundle\Entity\Integration;
 use Mautic\PluginBundle\Entity\IntegrationRepository;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class SpeedleadApiService
 {
@@ -29,14 +30,21 @@ class SpeedleadApiService
      */
     private $integrationsRepository;
 
+    /**
+     * @var TranslatorInterface
+     */
+    protected $translator;
+
     public function __construct(
         IntegrationRepository $integrationRepository,
         EncryptionHelper $encryptionHelper,
-        RefreshTokenApiService $refreshTokenApiService
+        RefreshTokenApiService $refreshTokenApiService,
+        TranslatorInterface $translator
     ) {
         $this->integrationsRepository = $integrationRepository;
         $this->encryptionHelper = $encryptionHelper;
         $this->refreshTokenApiService = $refreshTokenApiService;
+        $this->translator = $translator;
 
         $this->integration = $this->integrationsRepository->findOneBy(['name' => 'Speedlead']);
     }
