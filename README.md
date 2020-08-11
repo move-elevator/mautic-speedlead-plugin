@@ -20,7 +20,7 @@ Mautic version > 3.0
 ## Run the plugin
 ### automatically
 * if you configured the plugin to run automatically, you have to setup the cronjob that runs the underlying symfony-command
-* you can take the script from ```path/to/mautic/plugins/SpeadleadBundle/cron/sl.sh``` and apply that to the cron-routine on your system
+* you can take the script from ```path/to/mautic/plugins/SpeedleadBundle/cron/sl.sh``` and apply that to the cron-routine on your system
 or you can take the symfony-command ```speedlead:import-contacts``` by itself and incorporate it by yourself. this step can differ per mautic-installation.
 * for further instructions on how to setup cronjobs with mautic, please refer to  https://docs.mautic.org/en/setup/cron-jobs
 * after that the plugin should run automatically
