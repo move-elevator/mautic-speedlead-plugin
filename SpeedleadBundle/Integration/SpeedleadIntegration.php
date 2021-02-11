@@ -134,7 +134,7 @@ class SpeedleadIntegration extends AbstractIntegration
         }
 
         $segments = $this->em->getRepository(LeadList::class)->getGlobalLists();
-        $segmentChoices = ['mautic.integration.speedlead.segment.none' => 0];
+        $segmentChoices = [];
 
         foreach ($segments as $segment) {
             $segmentChoices[$segment['name']] = $segment['id'];
@@ -153,12 +153,12 @@ class SpeedleadIntegration extends AbstractIntegration
             );
 
             $builder->add(
-                'segment',
+                'segments',
                 ChoiceType::class,
                 [
                     'choices'    => $segmentChoices,
                     'label'      => 'mautic.integration.speedlead.segment',
-                    'multiple'   => false,
+                    'multiple'   => true,
                     'required'   => true,
                 ]
             );

@@ -124,7 +124,7 @@ class ReportContactMapperService
         $companyModel = $this->modelFactory->getModel('lead.company');
 
         $initialStage = $featureSettings['initialStage'];
-        $segmentId = $featureSettings['segment'];
+        $segmentIds = $featureSettings['segments'];
 
         // create and save the lead and company
         $lead = $this->createLead($report, $initialStage, $leadModel);
@@ -142,8 +142,8 @@ class ReportContactMapperService
 
                 $noteModel->saveEntity($note);
 
-                // set segment when it is not 0 (no segment)
-                if (0 !== $segmentId) {
+                // set segments when chosen
+                foreach ($segmentIds as $segmentId) {
                     $segment = $this->leadListRepository->find($segmentId);
 
                     $listLead = new ListLead();
@@ -165,9 +165,10 @@ class ReportContactMapperService
                         );
 
                     $this->eventLogRepository->saveEntity($log);
-                    $this->eventLogRepository->clear();
                     $this->listLeadRepository->saveEntity($listLead);
                 }
+
+                $this->eventLogRepository->clear();
             }
 
             $company = $this->companyRepository->findOneBy(['name' => $lead->getCompany()]);
