@@ -19,6 +19,10 @@ return [
             'mautic_speedlead_contact_import' => [
                 'path' => '/speedlead/contact/import',
                 'controller' => 'SpeedleadBundle:Contact:import',
+            ],
+            'mautic_speedlead_contact_survey_configuration_update' => [
+                'path' => '/speedlead/contact/survey-configuration/update',
+                'controller' => 'SpeedleadBundle:Contact:updateSurveyConfiguration',
             ]
         ],
     ],
@@ -68,7 +72,9 @@ return [
                 'arguments' => [
                     '@=service("doctrine").getRepository("MauticPluginBundle:Integration")',
                     'mautic.speedlead.service.report_api',
-                    'mautic.speedlead.service.report_contact_mapper'
+                    'mautic.speedlead.service.report_contact_mapper',
+                    '@=service("doctrine").getRepository("SpeedleadBundle:SurveyConfiguration")',
+                    'mautic.helper.encryption'
                 ],
             ],
         ],
@@ -89,6 +95,15 @@ return [
             ],
             'mautic.speedlead.service.report_api' => [
                 'class' => \MauticPlugin\SpeedleadBundle\Service\ReportApiService::class,
+                'arguments' => [
+                    '@=service("doctrine").getRepository("MauticPluginBundle:Integration")',
+                    'mautic.helper.encryption',
+                    'mautic.speedlead.service.refresh_token_api',
+                    'translator'
+                ]
+            ],
+            'mautic.speedlead.service.survey_api' => [
+                'class' => \MauticPlugin\SpeedleadBundle\Service\SurveyApiService::class,
                 'arguments' => [
                     '@=service("doctrine").getRepository("MauticPluginBundle:Integration")',
                     'mautic.helper.encryption',
@@ -123,6 +138,9 @@ return [
             ],
             'mautic.speedlead.service.url_generator' => [
                 'class' => \MauticPlugin\SpeedleadBundle\Service\UrlGeneratorService::class
+            ],
+            'mautic.speedlead.service.survey_configuration_mapper' => [
+                'class' => \MauticPlugin\SpeedleadBundle\Service\SurveyConfigurationMapperService::class
             ],
         ],
     ],

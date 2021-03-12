@@ -15,11 +15,15 @@ use Mautic\LeadBundle\Entity\LeadNote;
 use Mautic\LeadBundle\Entity\LeadRepository;
 use Mautic\LeadBundle\Entity\ListLead;
 use Mautic\LeadBundle\Entity\ListLeadRepository;
+use Mautic\LeadBundle\Entity\Tag;
+use Mautic\LeadBundle\Entity\TagRepository;
 use Mautic\LeadBundle\Model\CompanyModel;
 use Mautic\LeadBundle\Model\LeadModel;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\NoteModel;
+use Mautic\LeadBundle\Model\TagModel;
 use \Mautic\StageBundle\Entity\StageRepository;
+use MauticPlugin\SpeedleadBundle\Entity\SurveyConfiguration;
 use MauticPlugin\SpeedleadBundle\Statics\ReportConsent;
 use Symfony\Component\Translation\TranslatorInterface;
 
@@ -106,7 +110,7 @@ class ReportContactMapperService
         $this->translator = $translator;
     }
 
-    public function createContact(array $report, array $featureSettings): void
+    public function createContact(array $report, array $featureSettings, ?SurveyConfiguration $surveyConfiguration): void
     {
         if (true === empty($report['contact']['email'])) {
             return;
@@ -123,11 +127,13 @@ class ReportContactMapperService
         /** @var CompanyModel $companyModel */
         $companyModel = $this->modelFactory->getModel('lead.company');
 
+        // set the tags to contact when survey is checked
+
         $initialStage = $featureSettings['initialStage'];
         $segmentIds = $featureSettings['segments'];
 
         // create and save the lead and company
-        $lead = $this->createLead($report, $initialStage, $leadModel);
+        $lead = $this->createLead($report, $initialStage, $leadModel, $surveyConfiguration);
 
         if (true === $lead instanceof Lead) {
             $this->handleLeadEventLog($lead, $report);
@@ -183,10 +189,9 @@ class ReportContactMapperService
                 $companyModel->saveEntity($company);
             }
         }
-
     }
 
-    private function createLead(array $report, int $initialStage, LeadModel $leadModel): Lead
+    private function createLead(array $report, int $initialStage, LeadModel $leadModel, ?SurveyConfiguration $surveyConfiguration): Lead
     {
         $lead = new Lead();
         $lead->setNewlyCreated(true);
@@ -256,6 +261,75 @@ class ReportContactMapperService
             // the IP if it is set to be ignored in the Configuration)
             if (false === $leadIpAddresses->contains($ipAddress)) {
                 $lead->addIpAddress($ipAddress);
+            }
+        }
+
+        // handle survey fields in report
+        if (null !== $surveyConfiguration) {
+            /** @var TagModel $tagModel */
+            $tagModel = $this->modelFactory->getModel('lead.tag');
+            /** @var TagRepository $tagRepository */
+            $tagRepository = $tagModel->getRepository();
+
+            $configurationArray = json_decode($surveyConfiguration->getConfiguration(), true);
+
+            foreach ($report['fields'] as $reportField) {
+                if (
+                    false === array_key_exists($reportField['field'], $configurationArray) ||
+                    false === $configurationArray[$reportField['field']]['import']
+                ) {
+                    continue;
+                }
+
+                foreach ($configurationArray[$reportField['field']]['options'] as $option) {
+                    // handle multiselect survey-fields from report
+                    if (true === is_array($reportField['value'])) {
+                        if (true === is_array($reportField['value']['value'])) {
+                            foreach ($reportField['value']['value'] as $value) {
+                                if ($value === $option['label']) {
+                                    $tag = $option['tag'] ?? $option['label'];
+                                    $tagEntity = $tagRepository->findOneBy(['tag' => $tag]);
+
+                                    if (null === $tagEntity) {
+                                        $tagEntity = new Tag($tag);
+                                        $tagModel->saveEntity($tagEntity);
+                                    }
+
+                                    $lead->addTag($tagEntity);
+                                }
+                            }
+
+                            continue;
+                        }
+
+                        if ($reportField['value']['value'] === $option['label']) {
+                            $tag = $option['tag'] ?? $option['label'];
+                            $tagEntity = $tagRepository->findOneBy(['tag' => $tag]);
+
+                            if (null === $tagEntity) {
+                                $tagEntity = new Tag($tag);
+                                $tagModel->saveEntity($tagEntity);
+                            }
+
+                            $lead->addTag($tagEntity);
+                        }
+
+                        continue;
+                    }
+
+                    // handle singleselect survey-fields from report
+                    if ($reportField['value'] === $option['label']) {
+                        $tag = $option['tag'] ?? $option['label'];
+                        $tagEntity = $tagRepository->findOneBy(['tag' => $tag]);
+
+                        if (null === $tagEntity) {
+                            $tagEntity = new Tag($tag);
+                            $tagModel->saveEntity($tagEntity);
+                        }
+
+                        $lead->addTag($tagEntity);
+                    }
+                }
             }
         }
 

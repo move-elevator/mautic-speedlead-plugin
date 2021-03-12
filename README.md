@@ -32,6 +32,7 @@ or you can take the symfony-command ```speedlead:import-contacts``` by itself an
 * this way you can always be sure, your reports (speedlead-wise) are in a good shape before they are imported to Mautic
 
 ## Features
+### Date filter
 * the command ```speedlead:import-contacts``` offers two optional options to customize how the filters for the speedlead-API to fetch the contacts
 will behave:
 ```
@@ -44,3 +45,11 @@ will behave:
 
 * if you trigger the import manually via the Mautic-UI, you can also customize these filters in the form which is displayed upon navigating to the menu
 * the value needs to be given in the same way that they are given to the symfony-command
+### Survey import
+* when importing manually you can declare a configuration to also import the values from the survey which is defined in speedlead.
+* if you want to change the value which is imported you can use the input field to define your own.
+* after the import, every value is added as a tag to the newly created contact.
+* once you have declared a configuration, the automatic import will also use it to import the survey when it runs.
+### Survey update
+* when the survey has updated speedlead-wise you can always fetch those changes by clicking the update button in the mautic-UI.
+* use with caution! this overwrites the existing configuration and clears all declared fields/tags from it.

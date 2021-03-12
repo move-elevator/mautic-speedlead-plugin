@@ -3,7 +3,9 @@ declare(strict_types = 1);
 
 namespace MauticPlugin\SpeedleadBundle\Command;
 
+use Mautic\CoreBundle\Helper\EncryptionHelper;
 use Mautic\PluginBundle\Entity\Integration;
+use MauticPlugin\SpeedleadBundle\Repository\SurveyConfigurationRepository;
 use MauticPlugin\SpeedleadBundle\Service\ReportApiService;
 use MauticPlugin\SpeedleadBundle\Service\ReportContactMapperService;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
@@ -29,14 +31,28 @@ class ImportContactsCommand extends ContainerAwareCommand
      */
     private $reportContactMapper;
 
+    /**
+     * @var SurveyConfigurationRepository
+     */
+    private $surveyConfigurationRepository;
+
+    /**
+     * @var EncryptionHelper
+     */
+    private $encryptionHelper;
+
     public function __construct(
         IntegrationRepository $integrationRepository,
         ReportApiService $reportApiService,
-        ReportContactMapperService $reportContactMapper
+        ReportContactMapperService $reportContactMapper,
+        SurveyConfigurationRepository $surveyConfigurationRepository,
+        EncryptionHelper $encryptionHelper
     ) {
         $this->integrationsRepository = $integrationRepository;
         $this->reportApiService = $reportApiService;
         $this->reportContactMapper = $reportContactMapper;
+        $this->surveyConfigurationRepository = $surveyConfigurationRepository;
+        $this->encryptionHelper = $encryptionHelper;
 
         parent::__construct();
     }
@@ -85,6 +101,11 @@ class ImportContactsCommand extends ContainerAwareCommand
         }
 
         try {
+            $surveyConfiguration = $this->surveyConfigurationRepository->findOneBy(['fairId' => $this
+                ->encryptionHelper
+                ->decrypt($integration->getApiKeys()['fair'])
+            ]);
+
             //get reports
             $reports = $this->reportApiService->callApiGetReports(
                 $input->getOption('createdBefore'),
@@ -93,7 +114,7 @@ class ImportContactsCommand extends ContainerAwareCommand
 
             // map reports
             foreach($reports as $report) {
-                $this->reportContactMapper->createContact($report, $integration->getFeatureSettings());
+                $this->reportContactMapper->createContact($report, $integration->getFeatureSettings(), $surveyConfiguration);
 
                 $output->writeln(sprintf('finished handling for report: %s', $report['id']));
             }
