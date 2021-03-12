@@ -4,6 +4,7 @@ declare(strict_types = 1);
 namespace MauticPlugin\SpeedleadBundle\Form\Type;
 
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -23,9 +24,34 @@ class FilterImportType extends AbstractType
                 'required' => true,
                 'label' => 'mautic.speedlead.filter.updated_after',
                 'data' => '-4hours'
-            ])
-            ->add('submit', SubmitType::class, [
-                'label' => 'mautic.speedlead.contact.import'
+            ]);
+
+        foreach ($options['surveyConfiguration'] as $fieldKey => $field) {
+            $builder->add($fieldKey, CheckboxType::class, [
+                'required' => false,
+                'data' => $field['import'],
+                'label' => $field['label']
+            ]);
+
+            foreach ($field['options'] as $optionKey => $option) {
+                $builder->add(sprintf('%s_%s', $fieldKey, $optionKey), TextType::class, [
+                    'required' => false,
+                    'data' => $option['tag'],
+                    'label' => $option['label']
+                ]);
+            }
+        }
+
+        $builder->add('submit', SubmitType::class, [
+            'label' => 'mautic.speedlead.contact.import'
+        ]);
+    }
+
+    public function configureOptions(OptionsResolver $resolver)
+    {
+        $resolver
+            ->setDefaults([
+                'surveyConfiguration' => null
             ]);
     }
 

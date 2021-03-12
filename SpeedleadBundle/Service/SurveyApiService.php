@@ -7,27 +7,20 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\HttpFoundation\Response;
 
-class ReportApiService extends SpeedleadApiService
+class SurveyApiService extends SpeedleadApiService
 {
-    public function callApiGetReports(string $createdBeforeString = '-2 hours', string $updatedAfterString = '-4 hours'): array
+    public function callApiGetSurvey(): array
     {
         if (null === $this->integration) {
             throw new \Exception($this->translator->trans('mautic.speedlead.no_plugin_conf_found'));
         }
-
-        $createdBefore = new \DateTime($createdBeforeString);
-        $updatedAfter = new \DateTime($updatedAfterString);
 
         $client = new Client();
 
         try {
             $response = $client->request(
                 'GET',
-                sprintf('%s/backend/api/v1/fairs/%s/survey/reports', $this->getInstance(), $this->getFairId()), [
-                    'query' => [
-                        'createdBefore' => $createdBefore->getTimestamp(),
-                        'updatedAfter' => $updatedAfter->getTimestamp()
-                    ],
+                sprintf('%s/backend/api/v1/fairs/%s/survey', $this->getInstance(), $this->getFairId()), [
                     'headers' => [
                         'Authorization' => sprintf('Bearer %s', $this->getToken()),
                         'Content-Type' => 'application/json'
@@ -38,8 +31,8 @@ class ReportApiService extends SpeedleadApiService
             if (Response::HTTP_UNAUTHORIZED === $exception->getCode()) {
                 $this->handleAuthRefresh();
 
-                // call reports-api again with refreshed auth
-                return self::callApiGetReports($createdBeforeString, $updatedAfterString);
+                // call api again with refreshed auth
+                return self::callApiGetSurvey();
             }
         }
 
